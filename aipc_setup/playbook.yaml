@@ -1,0 +1,53 @@
+- name: Setup server for AIPC
+  hosts: mydroplet
+  tasks:
+  - name: Install Ansible 
+    apt: 
+      update_cache: yes 
+      name: "{{ item }}" 
+      state: present
+    loop:
+    - zip
+    - ca-certificates 
+    - curl
+    - ansible
+    - git
+  - name: Install terraform 
+    unarchive:
+      src: https://releases.hashicorp.com/terraform/1.10.5/terraform_1.10.5_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+
+- name: Install Docker
+  hosts: mydroplet 
+  tasks:
+  - name: create keyring
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
+  - name: copy keys 
+    get_url:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      dest: /etc/apt/keyrings/docker.asc
+      mode: 'a+r'
+  - name: Add Docker apt
+    shell:
+      cmd: "echo \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"${UBUNTU_CODENAME:-$VERSION_CODENAME}\") stable\" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null" 
+  - name: Install Docker 
+    apt: 
+      update_cache: yes
+      name: "{{ item }}"
+      state: present 
+    loop:
+    - docker-ce 
+    - docker-ce-cli 
+    - containerd.io 
+    - docker-buildx-plugin 
+    - docker-compose-plugin
+  - name: start Docker
+    systemd: 
+      name: docker 
+      daemon_reload: yes
+      enabled: yes
+      state: started
